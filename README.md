@@ -1,1 +1,846 @@
 # doc-ios
+
+
+
+Rq: ism l entité Movie w ism l’attribut movieName fel BD
+Donner un identifiant a la cellule
+Donner un tag aux contenus de cell
+Donner identifiant Segue
+Configurer Rowheight de la cellule = Rowheight tableView
+Dans tableView activer les protocoles : datasource/delegete
+Segue : choisir show
+Navigation controller (izid bar wahdou+back) : bureau/Editor/EmbedIn/navigationController
+Ajouter UI = ajouter fichier ViewController et les associer
+Cell accessory (kima el i fel cell ): fel UICell/Accessory/Detail disc
+ 
+ 
+ 
+// construction et remplissage tableView
+ 
+class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+var data = ["El Camino","Extraction","Project Power","Six Underground","Spenser Confidential","The Irishman" ]
+func numberOfSections(in tableView: UITableView) -> Int {
+return 1
+}
+func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+return data.count
+}
+func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+let cell = tableView.dequeueReusableCell(withIdentifier: "mCell")
+let contentView = cell?.contentView
+let label = contentView?.viewWithTag(1) as! UILabel
+let imageView = contentView?.viewWithTag(2) as! UIImageView
+label.text = data[indexPath.row]
+imageView.image = UIImage(named: data[indexPath.row])
+return cell!
+}
+ 
+override func viewDidLoad() {
+super.viewDidLoad()
+// Do any additional setup after loading the view.
+}
+ 
+ 
+ 
+ 
+// Envoi de donner d’une page a une autre avec segue
+ 
+ 
+ 
+//cellule on click listener
+ 
+ 
+func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+let movie = data[indexPath.row]
+performSegue(withIdentifier: "mSegue", sender: movie)
+}
+override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+if segue.identifier == "mSegue"{
+let movie = sender as! String
+let destination = segue.destination as! DetailsViewController
+destination.movieTitle = movie
+}
+}
+ 
+// Insertion/Check if already exists / read from segue
+ 
+ 
+var movieTitle: String?
+@IBOutlet weak var movieLabel: UILabel!
+@IBOutlet weak var movieImage: UIImageView!
+
+
+
+override func viewDidLoad() {
+super.viewDidLoad()
+movieLabel.text = movieTitle
+movieImage.image = UIImage(named: movieTitle!)
+ 
+// Do any additional setup after loading the view.
+}
+@IBAction func saveMovie(_ sender: Any) {
+if checkMovie(){
+let alert = UIAlertController(title: "Warning", message: "Movie already exists", preferredStyle: .alert)
+let action = UIAlertAction(title: "Got it", style: .cancel, handler: nil)
+alert.addAction(action)
+self.present(alert,animated: true)
+ 
+}
+else {
+insertItem()
+}
+}
+func insertItem(){
+//3 etapes primordiaux au crud
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let entityDescription = NSEntityDescription.entity(forEntityName: "Movie", in: managedContext)
+let object = NSManagedObject(entity: entityDescription!, insertInto: managedContext)
+object.setValue(movieTitle!, forKey: "movieName")
+do
+{
+try managedContext.save()
+print("Insert successed")
+ 
+}catch{
+print("Insert error")
+}
+}
+func checkMovie() -> Bool {
+var movieExist = false
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+let predicate = NSPredicate(format: "movieName = %@", movieTitle!)
+request.predicate = predicate
+do{
+let result = try managedContext.fetch(request)
+if result.count > 0 {
+movieExist=true
+}
+ 
+}catch{
+print("fetching error")
+}
+return movieExist
+}
+ 
+}
+ 
+ 
+ 
+ 
+//fetch data + swipe delete
+ 
+class FavorieViewController: UIViewController,UITableViewDataSource {
+//var
+var favorites = [String]()
+//widget
+func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+return favorites.count
+}
+func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+let cell = tableView.dequeueReusableCell(withIdentifier: "mCell")
+let contentView = cell?.contentView
+let label = contentView?.viewWithTag(1) as! UILabel
+let imageView = contentView?.viewWithTag(2) as! UIImageView
+label.text = favorites[indexPath.row]
+imageView.image = UIImage(named: favorites[indexPath.row])
+return cell!
+}
+func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+if(editingStyle == .delete){
+deleteItem(index: indexPath.row)
+//print("Deleting")
+favorites.remove(at: indexPath.row)
+tableView.reloadData()
+}
+}
+ 
+override func viewDidLoad() {
+super.viewDidLoad()
+fetchData()
+ 
+// Do any additional setup after loading the view.
+}
+ 
+//fetch = affichage
+func fetchData(){
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+do{
+//result =tab de NSmanagedObject
+let result = try managedContext.fetch(request)
+for item in result {
+favorites.append(item.value(forKey: "movieName") as! String)
+}
+print("fetching success")
+ 
+}catch{
+print("fetching error")
+}
+}
+func deleteItem(index:Int){
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+let predicate = NSPredicate(format: "movieName = %@", favorites[ index])
+request.predicate = predicate
+do{
+let result = try managedContext.fetch(request)
+if result.count > 0 {
+let obj = result[0]
+managedContext.delete(obj)
+print("deleted successfully ")
+ 
+ 
+}
+ 
+}catch{
+print("deleted error")
+}
+}
+}
+ 
+ 
+ 
+ 
+Slider  //nafsou switcher
+ 
+ 
+   @IBAction func spinner(_ sender: UISlider) {
+ 
+        rating = Int(sender.value)
+ 
+        spinnerlab.text = String(Int(sender.value))
+ 
+    }
+ 
+ 
+ 
+ 
+ 
+ 
+/CollectionView
+ 
+ 
+Et ajouter coredata w delegate
+//
+ 
+//  TopViewController.swift
+ 
+//  sim2Exam
+ 
+//
+ 
+//  Created by Apple Esprit on 5/4/2022.
+ 
+//
+ 
+ 
+ 
+import UIKit
+ 
+import CoreData
+ 
+ 
+ 
+class TopViewController: UIViewController ,UICollectionViewDataSource {
+ 
+   
+ 
+     
+    //var
+ 
+    var favorites = [String]()
+ 
+    var favori = [String]()
+ 
+ 
+ 
+    //widget
+ 
+   
+ 
+   
+ 
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+ 
+        return favorites.count
+ 
+ 
+ 
+    }
+ 
+   
+ 
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+ 
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "mCell2", for: indexPath)
+ 
+        let contentView = cell.contentView
+ 
+       
+ 
+        let label = contentView.viewWithTag(4) as! UILabel
+ 
+        let imageView = contentView.viewWithTag(2) as! UIImageView
+ 
+       
+ 
+        label.text = favori[indexPath.row]
+ 
+        imageView.image = UIImage(named: favorites[indexPath.row])
+ 
+        return cell
+ 
+    }
+
+
+
+
+
+
+ 
+    override func viewDidLoad() {
+ 
+    super.viewDidLoad()
+ 
+    fetchData()
+ 
+ 
+ 
+    // Do any additional setup after loading the view.
+ 
+    }
+ 
+ 
+ 
+    //fetch = affichage
+ 
+    func fetchData(){
+ 
+    let appDelegate = UIApplication.shared.delegate as! AppDelegate
+ 
+    let persistaneContainer = appDelegate.persistentContainer
+ 
+    let managedContext = persistaneContainer.viewContext
+ 
+    let request = NSFetchRequest<NSManagedObject>(entityName: "Player")
+ 
+    do{
+ 
+    //result =tab de NSmanagedObject
+ 
+    let result = try managedContext.fetch(request)
+ 
+    for item in result {
+ 
+    favorites.append(item.value(forKey: "name") as! String)
+ 
+    favori.append(item.value(forKey: "rate") as! String)
+ 
+ 
+ 
+    }
+ 
+    print("fetching success")
+ 
+ 
+ 
+    }catch{
+ 
+    print("fetching error")
+ 
+    }
+ 
+    }
+ 
+   
+ 
+ 
+ 
+    }
+ 
+ 
+ 
+    //DELETE ALL
+ 
+func getByCreateria(name: String) -> NSManagedObject{
+       
+        var exExist:NSManagedObject?
+       
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let persistentContainer = appDelegate.persistentContainer
+        let managedContext = persistentContainer.viewContext
+       
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "Work")
+        let predicate = NSPredicate(format: "name = %@", name)
+        request.predicate = predicate
+       
+        do {
+            let result = try managedContext.fetch(request)
+            if result.count > 0 {
+               
+                exExist = (result[0] as! NSManagedObject)
+                print("exercice exists !")
+               
+            }
+            
+        } catch 
+Rq: ism l entité Movie w ism l’attribut movieName fel BD
+Donner un identifiant a la cellule
+Donner un tag aux contenus de cell
+Donner identifiant Segue
+Configurer Rowheight de la cellule = Rowheight tableView
+Dans tableView activer les protocoles : datasource/delegete
+Segue : choisir show
+Navigation controller (izid bar wahdou+back) : bureau/Editor/EmbedIn/navigationController
+Ajouter UI = ajouter fichier ViewController et les associer
+Cell accessory (kima el i fel cell ): fel UICell/Accessory/Detail disc
+ 
+ 
+ 
+// construction et remplissage tableView
+ 
+class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+var data = ["El Camino","Extraction","Project Power","Six Underground","Spenser Confidential","The Irishman" ]
+func numberOfSections(in tableView: UITableView) -> Int {
+return 1
+}
+func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+return data.count
+}
+func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+let cell = tableView.dequeueReusableCell(withIdentifier: "mCell")
+let contentView = cell?.contentView
+let label = contentView?.viewWithTag(1) as! UILabel
+let imageView = contentView?.viewWithTag(2) as! UIImageView
+label.text = data[indexPath.row]
+imageView.image = UIImage(named: data[indexPath.row])
+return cell!
+}
+ 
+override func viewDidLoad() {
+super.viewDidLoad()
+// Do any additional setup after loading the view.
+}
+ 
+ 
+ 
+ 
+// Envoi de donner d’une page a une autre avec segue
+ 
+ 
+ 
+//cellule on click listener
+ 
+ 
+func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+let movie = data[indexPath.row]
+performSegue(withIdentifier: "mSegue", sender: movie)
+}
+override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+if segue.identifier == "mSegue"{
+let movie = sender as! String
+let destination = segue.destination as! DetailsViewController
+destination.movieTitle = movie
+}
+}
+ 
+// Insertion/Check if already exists / read from segue
+ 
+ 
+var movieTitle: String?
+@IBOutlet weak var movieLabel: UILabel!
+@IBOutlet weak var movieImage: UIImageView!
+
+
+
+override func viewDidLoad() {
+super.viewDidLoad()
+movieLabel.text = movieTitle
+movieImage.image = UIImage(named: movieTitle!)
+ 
+// Do any additional setup after loading the view.
+}
+@IBAction func saveMovie(_ sender: Any) {
+if checkMovie(){
+let alert = UIAlertController(title: "Warning", message: "Movie already exists", preferredStyle: .alert)
+let action = UIAlertAction(title: "Got it", style: .cancel, handler: nil)
+alert.addAction(action)
+self.present(alert,animated: true)
+ 
+}
+else {
+insertItem()
+}
+}
+func insertItem(){
+//3 etapes primordiaux au crud
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let entityDescription = NSEntityDescription.entity(forEntityName: "Movie", in: managedContext)
+let object = NSManagedObject(entity: entityDescription!, insertInto: managedContext)
+object.setValue(movieTitle!, forKey: "movieName")
+do
+{
+try managedContext.save()
+print("Insert successed")
+ 
+}catch{
+print("Insert error")
+}
+}
+func checkMovie() -> Bool {
+var movieExist = false
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+let predicate = NSPredicate(format: "movieName = %@", movieTitle!)
+request.predicate = predicate
+do{
+let result = try managedContext.fetch(request)
+if result.count > 0 {
+movieExist=true
+}
+ 
+}catch{
+print("fetching error")
+}
+return movieExist
+}
+ 
+}
+ 
+ 
+ 
+ 
+//fetch data + swipe delete
+ 
+class FavorieViewController: UIViewController,UITableViewDataSource {
+//var
+var favorites = [String]()
+//widget
+func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+return favorites.count
+}
+func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+let cell = tableView.dequeueReusableCell(withIdentifier: "mCell")
+let contentView = cell?.contentView
+let label = contentView?.viewWithTag(1) as! UILabel
+let imageView = contentView?.viewWithTag(2) as! UIImageView
+label.text = favorites[indexPath.row]
+imageView.image = UIImage(named: favorites[indexPath.row])
+return cell!
+}
+func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+if(editingStyle == .delete){
+deleteItem(index: indexPath.row)
+//print("Deleting")
+favorites.remove(at: indexPath.row)
+tableView.reloadData()
+}
+}
+ 
+override func viewDidLoad() {
+super.viewDidLoad()
+fetchData()
+ 
+// Do any additional setup after loading the view.
+}
+ 
+//fetch = affichage
+func fetchData(){
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+do{
+//result =tab de NSmanagedObject
+let result = try managedContext.fetch(request)
+for item in result {
+favorites.append(item.value(forKey: "movieName") as! String)
+}
+print("fetching success")
+ 
+}catch{
+print("fetching error")
+}
+}
+func deleteItem(index:Int){
+let appDelegate = UIApplication.shared.delegate as! AppDelegate
+let persistaneContainer = appDelegate.persistentContainer
+let managedContext = persistaneContainer.viewContext
+let request = NSFetchRequest<NSManagedObject>(entityName: "Movie")
+let predicate = NSPredicate(format: "movieName = %@", favorites[ index])
+request.predicate = predicate
+do{
+let result = try managedContext.fetch(request)
+if result.count > 0 {
+let obj = result[0]
+managedContext.delete(obj)
+print("deleted successfully ")
+ 
+ 
+}
+ 
+}catch{
+print("deleted error")
+}
+}
+}
+ 
+ 
+ 
+ 
+Slider  //nafsou switcher
+ 
+ 
+   @IBAction func spinner(_ sender: UISlider) {
+ 
+        rating = Int(sender.value)
+ 
+        spinnerlab.text = String(Int(sender.value))
+ 
+    }
+ 
+ 
+ 
+ 
+ 
+ 
+/CollectionView
+ 
+ 
+Et ajouter coredata w delegate
+//
+ 
+//  TopViewController.swift
+ 
+//  sim2Exam
+ 
+//
+ 
+//  Created by Apple Esprit on 5/4/2022.
+ 
+//
+ 
+ 
+ 
+import UIKit
+ 
+import CoreData
+ 
+ 
+ 
+class TopViewController: UIViewController ,UICollectionViewDataSource {
+ 
+   
+ 
+     
+    //var
+ 
+    var favorites = [String]()
+ 
+    var favori = [String]()
+ 
+ 
+ 
+    //widget
+ 
+   
+ 
+   
+ 
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+ 
+        return favorites.count
+ 
+ 
+ 
+    }
+ 
+   
+ 
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+ 
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "mCell2", for: indexPath)
+ 
+        let contentView = cell.contentView
+ 
+       
+ 
+        let label = contentView.viewWithTag(4) as! UILabel
+ 
+        let imageView = contentView.viewWithTag(2) as! UIImageView
+ 
+       
+ 
+        label.text = favori[indexPath.row]
+ 
+        imageView.image = UIImage(named: favorites[indexPath.row])
+ 
+        return cell
+ 
+    }
+
+
+
+
+
+
+ 
+    override func viewDidLoad() {
+ 
+    super.viewDidLoad()
+ 
+    fetchData()
+ 
+ 
+ 
+    // Do any additional setup after loading the view.
+ 
+    }
+ 
+ 
+ 
+    //fetch = affichage
+ 
+    func fetchData(){
+ 
+    let appDelegate = UIApplication.shared.delegate as! AppDelegate
+ 
+    let persistaneContainer = appDelegate.persistentContainer
+ 
+    let managedContext = persistaneContainer.viewContext
+ 
+    let request = NSFetchRequest<NSManagedObject>(entityName: "Player")
+ 
+    do{
+ 
+    //result =tab de NSmanagedObject
+ 
+    let result = try managedContext.fetch(request)
+ 
+    for item in result {
+ 
+    favorites.append(item.value(forKey: "name") as! String)
+ 
+    favori.append(item.value(forKey: "rate") as! String)
+ 
+ 
+ 
+    }
+ 
+    print("fetching success")
+ 
+ 
+ 
+    }catch{
+ 
+    print("fetching error")
+ 
+    }
+ 
+    }
+ 
+   
+ 
+ 
+ 
+    }
+ 
+ 
+ 
+    //DELETE ALL
+ 
+func getByCreateria(name: String) -> NSManagedObject{
+       
+        var exExist:NSManagedObject?
+       
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let persistentContainer = appDelegate.persistentContainer
+        let managedContext = persistentContainer.viewContext
+       
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "Work")
+        let predicate = NSPredicate(format: "name = %@", name)
+        request.predicate = predicate
+       
+        do {
+            let result = try managedContext.fetch(request)
+            if result.count > 0 {
+               
+                exExist = (result[0] as! NSManagedObject)
+                print("exercice exists !")
+               
+            }
+            
+        } catch {
+           
+            print("Fetching by criteria error !")
+        }
+       
+       
+        return exExist!
+    }
+    func deleteElements() {
+       
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let persistentContainer = appDelegate.persistentContainer
+        let managedContext = persistentContainer.viewContext
+       
+        for item in excercice {
+           
+            let object = getByCreateria(name: item)
+            managedContext.delete(object)
+        }
+       
+ 
+       
+               
+    }
+   
+    @IBAction func deleteAllAction(_ sender: Any) {
+        deleteElements()
+        excercice.removeAll()
+        mCollectionView.reloadData()
+       
+    }
+           
+            print("Fetching by criteria error !")
+        }
+       
+       
+        return exExist!
+    }
+    func deleteElements() {
+       
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let persistentContainer = appDelegate.persistentContainer
+        let managedContext = persistentContainer.viewContext
+       
+        for item in excercice {
+           
+            let object = getByCreateria(name: item)
+            managedContext.delete(object)
+        }
+       
+ 
+       
+               
+    }
+   
+    @IBAction func deleteAllAction(_ sender: Any) {
+        deleteElements()
+        excercice.removeAll()
+        mCollectionView.reloadData()
+       
+    }
