@@ -1,0 +1,117 @@
+identify cells
+use the controller segue instead of button actions
+accessory -> disclosure indicator pour dire que la cellule est cliquable
+use cocoa touch class when creating viewcontrollers.swift
+assistant : button under +
+remember to name segues
+
+-to change image :
+imageid.image = UIImage(named: "new image nama")
+
+-navigate with button : 
+prepare(for segue...) {
+	if segue.identifier == "segue name" {
+		let destination = segue.destination as! homecontroller
+		destination.avatarname = Tf.text // get text from textfield
+	}
+}
+
+performSegue(withIdentifier: "segue name", sender: sender) // inside button action function
+
+
+-optional string var
+var avatarname:String?    //? = optional
+
+-set the label after navigation in the vididload function
+label.text = "Hello " + avatarname!
+
+
+
+**** remember to add uitableviewdatasource and uitableviewdelegate in the class line
+
+var playerColors = ["red", "blue"...] //array containing images names
+
+func tableview ... -> int {
+	return array.count
+}
+
+func tableview {    //// population du tableview
+	let cell = tableView.dequeueReusabaleCell(withIdentifier: "cellId")
+	let cv = cell?.contentView //content view
+
+	let playerImg = cv?.viewWithTag(1) as! UIImageView
+	let playName = cv?.viewWithTag(2) as! UILabel
+	let playerColor = cv?.viewWithTag(3) as! UILabel
+
+	playerImg.image = UIImage(named: playersColors[indexPath.row])
+
+	return cell!
+}
+
+//// cell select  (just type didselect)
+func tableview (.... indexPath : IndexPath) {
+	performSegue (withidentifier : "scondsegue", sender: indexpath)
+}
+
+prepare for segue /// navigation to details from cell
+{
+	if segue.identifier == "secondSegue" {
+		let indexPath = sender as! IndexPath
+		let destination = segue.destination as! detailsViewController
+		destination.playerName = players[indexPath.row] // envoi des variables vers un autre controller *** dont forget to define them in the destination controller
+	}
+}
+
+
+
+let alert = UIAlertController(title: "titre", message: "message",preferredStyle: .alert)
+let action = UIAlertAction(title:"ok", style: .cancel, handler: nil)
+aler.addAction(action)
+self.present(alert, animated: true, completion: nil)
+
+///// core data
+import CoreData;
+
+func addPlayer() {
+	let appDelegate = UIApplication.shared.delegate as! AppDelegate
+	let persistentContainer = appDelegate.persistentContainer
+	let managedContext = persistentContainer.viewContext
+
+	let entityDescription = NSEntityDescription.entity(forEntityName: "player", in: managedContext)
+	let object = NSManagedObject(entity : entityDescription!, insertInto : managedContext)
+	object.serValue(playerName, forKey: "name")
+	object.serValue(playerColor, forKey: "color")
+
+	do {
+		try managedContext.save()
+		} catch {
+			print("adding error")
+		}
+	
+}
+
+
+fun ifExist() -> Bool {
+	var mBoolean = false
+	let appDelegate = UIApplication.shared.delegate as! AppDelegate
+	let persistentContainer = appDelegate.persistentContainer
+	let managedContext = persistentContainer.viewContext
+
+	let request = NSFetchRequest<NSManagedObject>(entityName: "player")
+	let predicate = NSPredicate(format: "name = %@", playerName!)
+	request.predicate = predicate
+
+	do {
+		let result = try managedContex.fetch(request)
+		if result.count > 0 {
+			mBoolean = true
+		}
+	} catch {
+		print("fetching error")
+	}
+	return mBoolean
+}
+
+/////////// 
+var suspects = [String]()   //empty array declaration
+
